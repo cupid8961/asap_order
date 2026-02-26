@@ -165,24 +165,24 @@ app.post('/api/generate-excel', async (req, res) => {
 
     // 헤더 설정
     worksheet.columns = [
-      { header: '재고폼', key: 'inventoryForm', width: 12 },
-      { header: '네이버 재고', key: 'naverInventory', width: 12 },
+      { header: 'IMS', key: 'inventoryForm', width: 12 },
+      { header: '쇼핑몰', key: 'naverInventory', width: 12 },
       { header: 'NO', key: 'no', width: 5 },
       { header: '신청번호', key: 'applicationNumber', width: 15 },
       { header: '상품명', key: 'productName', width: 30 },
-      { header: '단가(CNY)', key: 'price', width: 12 },
+      { header: '단가', key: 'price', width: 12 },
       { header: '수량', key: 'quantity', width: 8 },
       { header: '입고수량', key: 'receiveQuantity', width: 10 },
-      { header: '현지운송료(CNY)', key: 'localShipping', width: 15 },
+      { header: '운송료', key: 'localShipping', width: 15 },
       { header: '옵션1', key: 'option1', width: 25 },
       { header: '옵션2', key: 'option2', width: 25 },
-      { header: '상세URL', key: 'detailUrl', width: 50 },
       { header: '메모', key: 'memo', width: 50 },
-      { header: '특이사항', key: 'specialNote', width: 30 }
+      { header: '특이사항', key: 'specialNote', width: 30 },
+      { header: '상세URL', key: 'detailUrl', width: 50 }
     ];
 
     // 헤더 스타일 적용
-    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).font = { bold: true, size: 10 };
     worksheet.getRow(1).alignment = { vertical: 'middle', horizontal: 'center' };
     worksheet.getRow(1).fill = {
       type: 'pattern',
@@ -194,7 +194,7 @@ app.post('/api/generate-excel', async (req, res) => {
     products.forEach(product => {
       const row = worksheet.addRow(product);
       
-      // 모든 셀에 테두리 적용
+      // 모든 셀에 테두리 적용 및 폰트 크기 10 설정
       row.eachCell((cell) => {
         cell.border = {
           top: { style: 'thin' },
@@ -203,6 +203,7 @@ app.post('/api/generate-excel', async (req, res) => {
           right: { style: 'thin' }
         };
         cell.alignment = { vertical: 'middle', wrapText: true };
+        cell.font = { size: 10 };
       });
     });
 
