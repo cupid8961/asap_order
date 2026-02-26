@@ -330,9 +330,24 @@
                     body: JSON.stringify({ htmlContent })
                 });
 
+                // Content-Type 확인
+                const contentType = response.headers.get('Content-Type') || '';
+
                 if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || '엑셀 생성에 실패했습니다.');
+                    // JSON 응답인 경우에만 파싱 시도
+                    if (contentType.includes('application/json')) {
+                        const errorData = await response.json();
+                        throw new Error(errorData.error || '엑셀 생성에 실패했습니다.');
+                    } else {
+                        // HTML이나 다른 형식의 에러 응답
+                        throw new Error('서버 오류가 발생했습니다. (상태 코드: ' + response.status + ')');
+                    }
+                }
+
+                // 성공했지만 엑셀 파일이 아닌 경우 (서버가 HTML을 반환한 경우)
+                if (!contentType.includes('application/vnd.openxmlformats-officedocument.spreadsheetml.sheet') &&
+                    !contentType.includes('application/octet-stream')) {
+                    throw new Error('서버에서 올바른 응답을 받지 못했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
                 }
 
                 // 파일명 추출

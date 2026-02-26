@@ -227,6 +227,36 @@ app.post('/api/generate-excel', async (req, res) => {
   }
 });
 
+// 404 핸들러 - API 요청에 대해서만 JSON 응답
+app.use('/api/*', (req, res) => {
+  res.status(404).json({ error: '요청한 API 엔드포인트를 찾을 수 없습니다.' });
+});
+
+// 전역 에러 핸들러
+app.use((err, req, res, next) => {
+  console.error('서버 에러:', err);
+  
+  // 이미 응답을 보내기 시작한 경우
+  if (res.headersSent) {
+    return next(err);
+  }
+  
+  // JSON 파싱 에러 처리
+  if (err.type === 'entity.parse.failed') {
+    return res.status(400).json({ error: '잘못된 JSON 형식입니다.' });
+  }
+  
+  // 요청 크기 초과 에러 처리
+  if (err.type === 'entity.too.large') {
+    return res.status(413).json({ error: '요청 데이터가 너무 큽니다. (최대 50MB)' });
+  }
+  
+  res.status(500).json({ 
+    error: '서버 내부 오류가 발생했습니다.', 
+    details: err.message 
+  });
+});
+
 app.listen(PORT, () => {
   console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
 });
