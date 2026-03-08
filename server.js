@@ -51,7 +51,7 @@ app.post('/api/generate-excel', async (req, res) => {
         }
         
         if (applicationNumber) {
-          const memoMatch = memoText.match(/참고설명\s*-\s*(.+)/);
+          const memoMatch = memoText.match(/참고설명\s*-\s*([\s\S]+)/);
           if (memoMatch) {
             memosByApplicationNumber[applicationNumber] = memoMatch[1].trim();
           }
@@ -171,7 +171,7 @@ app.post('/api/generate-excel', async (req, res) => {
       { header: 'IMS', key: 'inventoryForm', width: 12 },
       { header: '쇼핑몰', key: 'naverInventory', width: 12 },
       { header: 'NO', key: 'no', width: 5 },
-      { header: '신청번호', key: 'applicationNumber', width: 15 },
+      { header: '신청번호', key: 'applicationNumber', width: 18 },
       { header: '상품명', key: 'productName', width: 30 },
       { header: '단가', key: 'price', width: 12 },
       { header: '수량', key: 'quantity', width: 8 },
