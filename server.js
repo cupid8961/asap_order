@@ -109,11 +109,15 @@ app.post('/api/generate-excel', async (req, res) => {
         // 수량 - span#count
         const quantity = $content.find('span#count').text().trim();
         
-        // 옵션1 - span#option1
-        const option1 = $content.find('span#option1').text().trim();
+        // 옵션1~4 합치기
+        const option1Text = $content.find('span#option1').text().trim();
+        const option2Text = $content.find('span#option2').text().trim();
+        const option3Text = $content.find('span#option3').text().trim();
+        const option4Text = $content.find('span#option4').text().trim();
         
-        // 옵션2 - span#option2
-        const option2 = $content.find('span#option2').text().trim();
+        // 빈 값이 아닌 옵션들만 모아서 합치기
+        const options = [option1Text, option2Text, option3Text, option4Text].filter(opt => opt !== '');
+        const option1 = options.join(' / ');
         
         // 상세URL
         const detailUrl = $content.find('span#site_url a').attr('href') || '';
@@ -146,7 +150,6 @@ app.post('/api/generate-excel', async (req, res) => {
             receiveQuantity: '',  // 입고수량 - 빈값
             localShipping,
             option1,
-            option2,
             detailUrl,
             memo,
             specialNote
@@ -174,8 +177,7 @@ app.post('/api/generate-excel', async (req, res) => {
       { header: '수량', key: 'quantity', width: 8 },
       { header: '입고수량', key: 'receiveQuantity', width: 10 },
       { header: '운송료', key: 'localShipping', width: 15 },
-      { header: '옵션1', key: 'option1', width: 25 },
-      { header: '옵션2', key: 'option2', width: 25 },
+      { header: '옵션1', key: 'option1', width: 50 },
       { header: '메모', key: 'memo', width: 50 },
       { header: '특이사항', key: 'specialNote', width: 30 },
       { header: '상세URL', key: 'detailUrl', width: 50 }
