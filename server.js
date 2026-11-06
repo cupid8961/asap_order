@@ -25,125 +25,64 @@ app.post('/api/generate-excel', async (req, res) => {
     }
 
     // Cheerio로 HTML 파싱
+    // (2026-11 ASAP 사이트 개편 구조: 신청서 .order-view-container 안에 상품 카드 .item-view-card)
     const $ = cheerio.load(htmlContent);
     const products = [];
     let rowNumber = 1;
-    
-    // 먼저 각 신청번호별로 메모를 수집 (신청번호를 키로)
-    const memosByApplicationNumber = {};
-    $('.ipko_memo').each((i, el) => {
-      const memoText = $(el).text().trim();
-      if (memoText.includes('참고설명')) {
-        // 이전에 나온 가장 가까운 신청번호 찾기
-        let $current = $(el);
-        let applicationNumber = '';
-        
-        while ($current.length > 0 && !applicationNumber) {
-          const $prevTitle = $current.prevAll('.view_tool5_title').first();
-          if ($prevTitle.length > 0) {
-            applicationNumber = $prevTitle.text().trim()
-              .replace(/\(신청번호\)/g, '')
-              .replace(/\n/g, '')
-              .trim();
-            break;
-          }
-          $current = $current.parent();
-        }
-        
-        if (applicationNumber) {
-          const memoMatch = memoText.match(/참고설명\s*-\s*([\s\S]+)/);
-          if (memoMatch) {
-            memosByApplicationNumber[applicationNumber] = memoMatch[1].trim();
-          }
-        }
-      }
-    });
 
-    // 각 상품 블록 찾기 (view_tool3_long이 실제 상품 블록)
-    $('.view_tool3_long').each((index, element) => {
-      try {
-        const $content = $(element);
-        
-        // 신청번호 찾기 - 현재 view_tool3_long 이전의 가장 가까운 view_tool5_title 찾기
-        let applicationNumber = '';
-        let $current = $content;
-        
-        // 상위로 올라가면서 view_tool5_title 찾기
-        while ($current.length > 0 && !applicationNumber) {
-          const $prevTitle = $current.prevAll('.view_tool5_title').first();
-          if ($prevTitle.length > 0) {
-            applicationNumber = $prevTitle.text().trim()
-              .replace(/\(신청번호\)/g, '')
-              .replace(/\n/g, '')
-              .trim();
-            break;
-          }
-          // 부모의 형제 요소들도 확인
-          $current = $current.parent();
-          const $prevTitleInParent = $current.prevAll().find('.view_tool5_title').first();
-          if ($prevTitleInParent.length > 0) {
-            applicationNumber = $prevTitleInParent.text().trim()
-              .replace(/\(신청번호\)/g, '')
-              .replace(/\n/g, '')
-              .trim();
-            break;
-          }
-        }
-        
-        // 제품코드 추출
-        const productCodeText = $content.find('li').first().find('span#name').text().trim();
-        const productCodeMatch = productCodeText.match(/IT\d+/);
-        const productCode = productCodeMatch ? productCodeMatch[0] : '';
-        
-        // 입고일 추출
-        const dateMatch = productCodeText.match(/\(입고일\s*:\s*([^\)]+)\)/);
-        const receiveDate = dateMatch ? dateMatch[1].trim() : '';
-        
-        // 상품명 - li.auto_jak 중 첫 번째에서 추출
-        const productNameLi = $content.find('li.auto_jak').eq(0);
-        const productName = productNameLi.find('span#name').text().trim();
-        
-        // 단가 - span#money
-        const price = $content.find('span#money').text().trim();
-        
-        // 수량 - span#count
-        const quantity = $content.find('span#count').text().trim();
-        
-        // 옵션1~4 합치기
-        const option1Text = $content.find('span#option1').text().trim();
-        const option2Text = $content.find('span#option2').text().trim();
-        const option3Text = $content.find('span#option3').text().trim();
-        const option4Text = $content.find('span#option4').text().trim();
-        
-        // 빈 값이 아닌 옵션들만 모아서 합치기
-        const options = [option1Text, option2Text, option3Text, option4Text].filter(opt => opt !== '');
-        const option1 = options.join(' / ');
-        
-        // 상세URL
-        const detailUrl = $content.find('span#site_url a').attr('href') || '';
-        
-        // 현지운송료
-        const localShipping = $content.find('span#local_ship_money').text().trim();
-        
-        // 특이사항 - span#local_invoice에서 '//*' 뒤의 텍스트 추출
-        const localInvoiceText = $content.find('span#local_invoice').text().trim();
-        let specialNote = '';
-        if (localInvoiceText.includes('//*')) {
-          const afterAsterisk = localInvoiceText.split('//*')[1];
-          if (afterAsterisk) {
-            specialNote = afterAsterisk.trim();
-          }
-        }
-        
-        // 메모 - 신청번호로 매칭
-        const memo = memosByApplicationNumber[applicationNumber] || '';
+    // 상품 카드에서 라벨(상품명, 옵션 등)로 값 칸 찾기
+    const getField = ($card, label) =>
+      $card.find('.info-row').filter((i, row) => $(row).find('label').text().trim() === label).find('.val');
 
-        if (productCode) {
+    $('.order-view-container').each((orderIndex, orderEl) => {
+      const $order = $(orderEl);
+
+      // 신청번호 (예: BU261020228364)
+      const applicationNumber = $order.find('.order-id-badge .code').text().replace(/\s/g, '');
+
+      // 메모 - 신청서 하단의 참고설명 (여러 줄 그대로 유지)
+      const memo = $order.find('.order-footer-card .footer-content').text().trim();
+
+      $order.find('.item-view-card').each((itemIndex, itemEl) => {
+        try {
+          const $card = $(itemEl);
+
+          // 제품코드 (IT로 시작) - 없으면 상품으로 보지 않음
+          const productCode = $card.find('.it-code').text().replace(/\s/g, '');
+          if (!/^IT\d+/.test(productCode)) return;
+
+          const productName = getField($card, '상품명').text().trim();
+
+          // 단가/수량: "<strong>9.00</strong> CNY / <strong>30</strong>개"
+          const $priceQty = getField($card, '단가/수량').find('strong');
+          const price = $priceQty.eq(0).text().trim();
+          const quantity = $priceQty.eq(1).text().trim();
+
+          // 옵션 (사이트에서 이미 하나로 합쳐서 보여줌)
+          const option1 = getField($card, '옵션').text().trim();
+
+          // 현지운송료: "0.00 CNY" → "0.00"
+          const localShipping = getField($card, '현지운송료').text().replace(/CNY/i, '').trim();
+
+          // 상세URL
+          const detailUrl = getField($card, '상세URL').find('a').attr('href') || '';
+
+          // 특이사항 - "트래킹번호//*특이사항 / 주문번호" 에서 '//*'와 마지막 ' / 주문번호' 사이
+          const trackingText = getField($card, '트레킹/주문번호').text().trim();
+          let specialNote = '';
+          const starIndex = trackingText.indexOf('//*');
+          if (starIndex !== -1) {
+            specialNote = trackingText
+              .slice(starIndex + 3)
+              .replace(/\s*\/\s*[0-9A-Za-z-]*\s*$/, '')
+              .trim();
+          }
+
           products.push({
-            inventoryForm: '',  // 재고폼 - 빈값
-            naverInventory: '',  // 네이버 재고 - 빈값
+            inventoryForm: '',  // IMS - 빈값
+            naverInventory: '',  // 쇼핑몰 - 빈값
             no: rowNumber++,
-            applicationNumber: applicationNumber,
+            applicationNumber,
             productName,
             price,
             quantity,
@@ -154,11 +93,15 @@ app.post('/api/generate-excel', async (req, res) => {
             memo,
             specialNote
           });
+        } catch (err) {
+          console.error('상품 파싱 중 오류:', err);
         }
-      } catch (err) {
-        console.error('상품 파싱 중 오류:', err);
-      }
+      });
     });
+
+    if (products.length === 0) {
+      return res.status(400).json({ error: '상품을 찾지 못했습니다. ASAP 신청서 페이지의 HTML 소스 전체를 붙여넣었는지 확인해주세요.' });
+    }
 
     console.log(`총 ${products.length}개의 상품을 파싱했습니다.`);
 
