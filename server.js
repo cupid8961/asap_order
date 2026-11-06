@@ -2,6 +2,7 @@ const express = require('express');
 const cheerio = require('cheerio');
 const ExcelJS = require('exceljs');
 const path = require('path');
+const { version } = require('./package.json');
 
 const app = express();
 const PORT = 3001;
@@ -13,6 +14,11 @@ app.use(express.static('public'));
 // 메인 페이지
 app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+
+// 실행 중인 서버 버전 (package.json 기준)
+app.get('/api/version', (req, res) => {
+  res.json({ version });
 });
 
 // HTML 파싱 및 엑셀 생성 API
@@ -204,5 +210,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`서버가 http://localhost:${PORT} 에서 실행 중입니다.`);
+  console.log(`서버(v${version})가 http://localhost:${PORT} 에서 실행 중입니다.`);
 });

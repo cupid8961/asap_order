@@ -1,6 +1,6 @@
 {
   "name": "asap-order-automation",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "ASAP 입고리스트 자동 생성 프로그램",
   "main": "server.js",
   "scripts": {

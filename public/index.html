@@ -37,6 +37,13 @@
             font-size: 32px;
         }
 
+        .version {
+            font-size: 14px;
+            font-weight: normal;
+            color: #888;
+            vertical-align: middle;
+        }
+
         .subtitle {
             text-align: center;
             color: #666;
@@ -225,7 +232,7 @@
 </head>
 <body>
     <div class="container">
-        <h1>🚀 ASAP 입고리스트 자동 생성</h1>
+        <h1>🚀 ASAP 입고리스트 자동 생성 <span class="version" id="appVersion"></span></h1>
         <p class="subtitle">HTML 소스를 붙여넣어 입고리스트 엑셀 파일을 자동으로 생성하세요</p>
 
         <div class="instruction">
@@ -274,6 +281,17 @@
     </div>
 
     <script>
+        // 서버 버전 표시 (서버에 올린 소스가 최신인지 확인용)
+        fetch('/api/version')
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('appVersion').textContent = 'v' + data.version;
+                document.title = 'ASAP 입고리스트 자동 생성 v' + data.version;
+            })
+            .catch(() => {
+                document.getElementById('appVersion').textContent = '(버전 확인 불가)';
+            });
+
         let downloadBlob = null;
         let downloadFilename = '';
 
